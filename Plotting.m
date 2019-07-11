@@ -1,6 +1,6 @@
 classdef Plotting
     properties
-        mode
+        style
         V
         downdip
         evl
@@ -14,7 +14,7 @@ classdef Plotting
         G33
     end
     methods
-        function obj = Plotting(mode,downdip,evl,xlocs,gravity,G33)
+        function obj = Plotting(style,downdip,evl,xlocs,gravity,G33)
             V=repmat(evl.flt.Vo',size(evl.y,1)-1,1).*exp(evl.y(2:end,4:evl.flt.dgf:evl.flt.N*evl.flt.dgf));
             if ~exist(strcat(evl.knlpath,'KO_s.grd'),'file')
                 [Ks,Kd]=computeDisplacementKernelsOkada85(evl.flt,evl.flt.earthModel.nu,xlocs,3);
@@ -48,7 +48,7 @@ classdef Plotting
             else
                 obj.LO={0,0,0,0,0,0};
             end
-            obj.mode = mode;
+            obj.style = style;
             obj.V = V;
             obj.Vmax=max(V,[],2);
             obj.downdip = downdip;
@@ -72,7 +72,7 @@ classdef Plotting
         % %                                                      %
         % % % % % % % % % % % % % % % % % % % % % % % % % % % %  %
         %
-        % if mode == 1
+        % if style == 1
         %     figure(1011);clf;set(gcf,'Color','White','name','Time Evolution')
         %     f11a = subplot(2,1,1);cla;
         %     toplot=Ks*evl.y(:,1:evl.flt.dgf:(evl.flt.N*evl.flt.dgf))'; %surface displacements
@@ -101,10 +101,10 @@ classdef Plotting
         % %               Time Tracking of Points                %
         % %                                                      %
         % % % % % % % % % % % % % % % % % % % % % % % % % % % % %%
-        % if mode == 1
+        % if style == 1
         % figure(1012);clf;set(gcf,'Color','White','name','Time evolution of tracked points');gca; hold on;box on;grid on;
         % end
-        % if mode == 2
+        % if style == 2
         %     toplot = Kd*evl.y(:,1:evl.flt.dgf:(evl.flt.N*evl.flt.dgf))';
         %     toplotE = toplot(1:3:end,:);
         %     toplotU = toplot(3:3:end,:);
@@ -119,7 +119,7 @@ classdef Plotting
         % %                                                      %
         % % % % % % % % % % % % % % % % % % % % % % % % % % % % %%
         % if true
-        %     if mode == 1
+        %     if style == 1
         %         figure(1009);clf;set(gcf,'Color','White','name','Surface deformation');gca; hold on;box on;grid on;
         %         Vmaxl = log10(Vmax);
         %         V1index= find(Vmaxl>=-2); % seismic velocity
@@ -151,7 +151,7 @@ classdef Plotting
         %  %       legend('boxoff')
         % %        title(lgd,'Contour spacing')
         %     end
-        %     if mode == 2
+        %     if style == 2
         %         figure(1009);clf;set(gcf,'Color','White','name','Surface deformation');subplot(2,1,1);gca; hold on;box on;grid on;
         %         Vmaxl = log10(Vmax);
         %         V1index= find(Vmaxl>=-2); % seismic velocity
@@ -218,7 +218,7 @@ classdef Plotting
         % %                                                      %
         % % % % % % % % % % % % % % % % % % % % % % % % % % % % %%
         % if true
-        %     if mode == 1
+        %     if style == 1
         %         figure(1011);clf;set(gcf,'Color','White','name','Surface deformation');gca; hold on;box on;grid on;
         %         Vmaxl = log10(Vmax);
         %         V1index= find(Vmaxl>=-2); % seismic velocity
@@ -250,7 +250,7 @@ classdef Plotting
         % %         legend('boxoff')
         % %         title(lgd,'Contour spacing')
         %     end
-        %     if mode == 2
+        %     if style == 2
         %         figure(1011);clf;set(gcf,'Color','White','name','Surface deformation');subplot(2,1,1);gca; hold on;box on;grid on;
         %         Vmaxl = log10(Vmax);
         %         V1index= find(Vmaxl>=-2); % seismic velocity
@@ -319,7 +319,7 @@ classdef Plotting
         % %                                                      %
         % % % % % % % % % % % % % % % % % % % % % % % % % % % % %%
         % if true
-        %     if mode == 1
+        %     if style == 1
         %         figure(1010);clf;set(gcf,'Color','White','name','Surface deformation');subplot(3,1,1);gca; hold on;box on;grid on;
         %         Vmaxl = log10(Vmax);
         %         V1index= find(Vmaxl>=-2); % seismic velocity
@@ -370,7 +370,7 @@ classdef Plotting
         %             title('Along-strike inter-seismic surface velocities');
         %         end
         %     end
-        %     if mode == 2
+        %     if style == 2
         %         figure(1010);clf;set(gcf,'Color','White','name','Surface deformation');
         %         Vmaxl = log10(Vmax);
         %         V1index= find(Vmaxl>=-2); % seismic velocity
@@ -452,7 +452,7 @@ classdef Plotting
         % colours='mbrkcy';
         % if true
         %     numcurves=5;
-        %     if mode==1
+        %     if style==1
         %         figure(1007);clf;set(gcf,'Color','White','name','Surface deformation');gca; hold on;box on;grid on;
         %         toplotV=zeros(numcurves,length(xloc));
         %         for k=1:numcurves
@@ -486,7 +486,7 @@ classdef Plotting
         %         legend('boxoff');axis tight;
         %         title(lgd,'Time (yrs)')
         %     end
-        %     if mode==2
+        %     if style==2
         %         figure(1007);clf;set(gcf,'Color','White','name','Surface deformation');subplot(2,1,1);gca; hold on;box on;grid on;
         %         toplotVc=zeros(numcurves,length(xloc));
         %         toplotVu=zeros(numcurves,length(xloc));
@@ -554,7 +554,7 @@ classdef Plotting
         function surfaceDisplacement(obj,fignum,numcurves)
             year = 60*60*24*365;g=9.81;
             colours='mbrkcy';
-            if obj.mode==1
+            if obj.style==1
                 figure(fignum(1));clf;set(gcf,'Color','White','name','Surface deformation');gca; hold on;box on;grid on;
                 toplotV=zeros(numcurves,length(obj.x));
                 for k=1:numcurves
@@ -590,7 +590,7 @@ classdef Plotting
                 legend('boxoff');axis tight;
                 title(lgd,'Time (yrs)')
             end
-            if obj.mode==2
+            if obj.style==2
                 figure(fignum(1));clf;set(gcf,'Color','White','name','Surface deformation');subplot(2,1,1);gca; hold on;box on;grid on;
                 toplotVc=zeros(numcurves,length(obj.x));
                 toplotVu=zeros(numcurves,length(obj.x));

@@ -41,10 +41,10 @@ g = 9.81; % Acceleration due to gravity
 %                       OPTIONS                        %
 %                                                      %
 % % % % % % % % % % % % % % % % % % % % % % % % % % %  %
-tmax = 250*year; % Length of simulation
+tmax = 500*year; % Length of simulation
 style = 1; % choose strike-slip (1) or dip-slip (2)
-viscoelastic = true; % switch on and off viscoelastic regions
-rheology = 2; % choose between maxwell (1) or power-law burgers (2)
+viscoelastic = false; % switch on and off viscoelastic regions
+rheology = 1; % choose between maxwell (1) or power-law burgers (2)
 gravity = false; % switch on and off gravitational effects
 tstresses = false; % allow for time varying fault normal stresses
 pinning = false; % allow for pinned fault patches
@@ -138,7 +138,7 @@ end
 %            G E O M E T R Y   C H E C K               %
 %                                                      %
 % % % % % % % % % % % % % % % % % % % % % % % % % % % %%
-if false
+if true
     figure(1001);clf;set(gcf,'Color','White','name','geometry & properties');
     gca; hold on
     toplot = flt.a - flt.b;
@@ -161,7 +161,7 @@ if false
     else
         set(gca,'clim',[0.9*min(toplot) 1.1*min(toplot)])
     end
-    return
+    %return
 end
 
 %% % % % % % % % % % % % % % % % % % % % % % % % % % % %
@@ -210,7 +210,7 @@ else
     end
 end
 
-if false
+if true
     figure(1002);clf;set(gcf,'Color','White','name','Stress interactions');
     gca; hold on
     slip=1-(upper+lower);
@@ -230,7 +230,7 @@ if false
     set(gca,'view',[30 30]);
     %set(gca,'clim',minmax(toplot));
     fprintf('Stress interaction: review before simulation\n');
-    return
+    %return
 end
 
 %% % % % % % % % % % % % % % % % % % % % % % % % % % % %
@@ -284,12 +284,12 @@ end
 
 %% Generate plotting object, then choose which plots to generate or things to export
 plotter = Plotting(style,downdip,evl,xlocs,gravity,G33);
-%max(plotter.Vmax)
+max(plotter.Vmax)
 %plotter.slipDeficit(1)
-%plotter.surfaceDisplacement([5 6],5)
-%plotter.slipContours(4,[0.1, year/12, 5*year],false)
-%plotter.velocityTime(2,stressing)
-%plotter.velocityTimestep(3,stressing)
+plotter.surfaceDisplacement([5 6],5)
+plotter.slipContours(4,[0.1, year/12, 5*year],false)
+plotter.velocityTime(2,stressing)
+plotter.velocityTimestep(3,stressing)
 if viscoelastic
     plotter.viscoelastic(10,250)
     plotter.viscoelasticTime(11,1)
