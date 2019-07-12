@@ -68,7 +68,7 @@ if viscoelastic
     shz.x(:,1)=shz.x(:,1)+1;
     shz.xc(:,1)=shz.xc(:,1)+1;
     % rheology
-    etaM=1e19; %Maxwell viscosity
+    etaM=1e18; %Maxwell viscosity
     viscfac=1e6; %Scaling factor because the simulation tracks stresses in MPa
     shz.n=0*shz.n+1; %Maxwell element power exponent
     shz.m=0*shz.n+1; %Kelving element power exponent
@@ -169,15 +169,12 @@ end
 %          S T R E S S   I N T E R A C T I O N         %
 %                                                      %
 % % % % % % % % % % % % % % % % % % % % % % % % % % % %%
-knlpath=['./kernels_N' num2str(flt.N) '_D' num2str(flt.dip(1)) '/'];
-%knlpath is where the kernels are stored - this will be updated to a unique
-%hash in a later version
 
 % compute Green's functions if necessary
 if ~exist('evl','var')
     % build stress kernels for integral equation
     tic
-    evl=rateStrengtheningPower([],flt,shz,[],knlpath);
+    evl=rateStrengtheningPower([],flt,shz,[]);
     if style == 1
         evl.shz.dgf=2+2*rheology;
     elseif style == 2
@@ -258,7 +255,7 @@ y0(4:evl.flt.dgf:(evl.flt.N*evl.flt.dgf)) = log(evl.flt.Vpl*0.98./evl.flt.Vo);
 tstart = 0;
 
 % True to resume simulation from previous saved conditions
-storedstate = [knlpath 'restart.mat'];
+storedstate = [evl.knlpath 'restart.mat'];
 if restart
     if exist(storedstate)
         load(storedstate)
@@ -285,7 +282,7 @@ end
 %% Generate plotting object, then choose which plots to generate or things to export
 plotter = Plotting(style,downdip,evl,xlocs,gravity,G33);
 max(plotter.Vmax)
-%plotter.slipDeficit(1)
+plotter.slipDeficit(1)
 plotter.surfaceDisplacement([5 6],5)
 plotter.slipContours(4,[0.1, year/12, 5*year],false)
 plotter.velocityTime(2,stressing)
@@ -294,5 +291,6 @@ if viscoelastic
     plotter.viscoelastic(10,250)
     plotter.viscoelasticTime(11,1)
 end
+tic; plotter.velocityEric(666,5000); plotter.slipContoursOver([1, year, 10*year]); toc
 plotter.citations([viscoelastic gravity pinning tstresses])
 %plotter.exportGMT('filename')

@@ -705,6 +705,32 @@ classdef Plotting
                 save(['./faultslipcontours.mat'],'downdip','s1','s2','s3')
             end
         end
+        %% % % % % % % % % % % % % % % % % % % % % % % % % %
+        %                Overprinting Slip Contours                      %
+        % % % % % % % % % % % % % % % % % % % % % % % % % % %
+        function slipContoursOver(obj,periods)
+            year = 60*60*24*365;
+            Vmaxl = log10(obj.Vmax);
+            hold on;
+            V1index= find(Vmaxl>=-2); % seismic velocity
+            V2index= find(ceil(log10(max(obj.evl.flt.Vpl)))<=Vmaxl & Vmaxl<-2); %
+            V3index= find(Vmaxl<ceil(log10(max(obj.evl.flt.Vpl)))); % aseismic velocity
+            if (~isempty(V1index))
+                pos = getPeriodicIndex(obj.evl.t(V1index),periods(1));
+                s1= obj.slip(:,V1index(pos)); % seismic slip
+                p1=plot(s1,obj.downdip,'r','LineWidth',1.0);
+            end
+            if(~isempty(V2index))
+                pos = getPeriodicIndex(obj.evl.t(V2index),periods(2));
+                s2= obj.slip(:,V2index(pos)); % afterslip
+                p2=plot(s2,obj.downdip,'color',[0 0.7 0],'LineWidth',1.5);
+            end
+            if(~isempty(V3index))
+                pos = getPeriodicIndex(obj.evl.t(V3index),periods(3)); % aseismic slip
+                s3= obj.slip(:,V3index(pos));
+                p3=plot(s3,obj.downdip,'b','LineWidth',1.0);
+            end
+        end
         %% % % % % % % % % % % % % % % % % % % % % % % % % % %
         %                   Fault Slip Rate                   %
         % % % % % % % % % % % % % % % % % % % % % % % % % % % %
@@ -733,6 +759,28 @@ classdef Plotting
             colormap(f3b,flipud(hot));
             title(h,'Fault normal stress (MPa)')
             xlabel('Time (yr)')
+            ylabel('Down-dip distance (km)');
+        end
+        %% % % % % % % % % % % % % % % % % % % % % % % % % % %
+        %                   Erics Awesome new figure                   %
+        % % % % % % % % % % % % % % % % % % % % % % % % % % % %
+        function velocityEric(obj,fignum,nxpts)
+            year = 60*60*24*365;
+            f3 = figure(fignum);clf;set(gcf,'Color','White','name','Time Evolution')
+            cla;
+            ydata=repmat(obj.downdip,[1,size(obj.evl.t(1:end-1))]);
+            xdata=obj.slip;
+            zdata=log10(obj.V');
+            xsample=linspace(min(min(obj.slip)),max(max(obj.slip)),nxpts);
+            test1=griddata(xdata(:),ydata(:),zdata(:),xsample,obj.downdip);
+            pcolor(xsample,obj.downdip,test1), shading flat
+            set(gca,'YDir','reverse');
+            h=colorbar('Location','NorthOutside');
+            %caxis([min(min(log10(V-realmin))) max(max(log10(V+realmin)))]);
+            caxis([-12 1]);
+            colormap(f3,parula);
+            title(h,'Log10 of Slip Rate (m/s)')
+            xlabel('Accumulated slip (m)')
             ylabel('Down-dip distance (km)');
         end
         %% % % % % % % % % % % % % % % % % % % % % % % % % % %

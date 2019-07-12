@@ -19,10 +19,10 @@ classdef evolution < handle
         KL=cell(2,6); % cell(causes, receivers)
         
         % traction on fault due to shear zones
-        % LK{i,j} is traction s{j} due to strain e{i}, where 
+        % LK{i,j} is traction s{j} due to strain e{i}, where
         % e=[e11,e12,e13,e22,e23,e33] and s={strike shear, dip shear, normal stress}
         LK=cell(6,3); % cell(causes, receivers)
-
+        
         % shear zones self stress
         % LL{i,j} is stress s{j} due to e{i} where s=[s11,s12,s13,s22,s23,s33]
         % and e=[e11,e12,e13,e22,e23,e33]
@@ -83,6 +83,13 @@ classdef evolution < handle
                 return
             end
             
+            % receiver faults
+            o.flt=flt;
+            % receiver shear zones
+            o.shz=shz;
+            % source faults
+            o.src=src;
+            
             if isempty(src)
                 o.src=struct('N',0,'dgf',0);
             end
@@ -95,117 +102,72 @@ classdef evolution < handle
                 o.flt=struct('N',0,'dgf',0);
             end
             
-            % receiver faults
-            o.flt=flt;
-            % receiver shear zones
-            o.shz=shz;
-            % source faults
-            o.src=src;
-
-            
-            if ~isempty(varargin)  
-                 if isempty(varargin{:})
-                    varargin={};
-                 else
-                    % kernel path
-                    o.knlpath=char(varargin{:});
-                    if ~exist(o.knlpath,'dir')
-                        st=strsplit(o.knlpath,'/');
-                        mkdir(st{end-1});
-                    end
-                 end
+            % kernel path
+            %o.knlpath=char(varargin{:});
+            if o.shz.N > 0
+                tohash={o.flt.x,o.flt.L,o.flt.W,o.flt.strike,o.flt.dip,o.flt.N ...
+                    o.shz.x,o.shz.L,o.shz.T,o.shz.W,o.shz.strike,o.shz.dip,o.shz.N};
+            else
+                tohash={o.flt.x,o.flt.L,o.flt.W,o.flt.strike,o.flt.dip,o.flt.N};
+            end
+            o.knlpath=['./kernels/' DataHash(tohash) '/'];
+            if ~exist(o.knlpath,'dir')
+                mkdir(o.knlpath)
+                %st=strsplit(o.knlpath,'/');
+                %mkdir(st{end-1});
             end
             
             o.knl.KK={'ss', 'sd', 'sn'; 'ds', 'dd', 'dn'};
             % stress interactions
             if isobject(flt)
-                if isempty(varargin)
+                if ~exist(strcat(o.knlpath,'KK_ss.grd'),'file')
                     [o.KK{:}]=flt.tractionKernels(flt);
-                else
-                    if ~exist(strcat(o.knlpath,'KK_ss.grd'),'file')
-                        if ~exist(strcat(o.knlpath,'KK.mat'),'file')
-                            [o.KK{:}]=flt.tractionKernels(flt);
-                            for i = 1:numel(o.KK)
-                                fname=strcat(o.knlpath,'KK_',o.knl.KK{i},'.grd');
-                                grdwrite([0 1], [0 1],o.KK{i},fname)
-                            end
-                        else
-                            load(strcat(o.knlpath,'KK.mat'));
-                            o.KK=sKK;
-                            clear sKK
-                            for i = 1:numel(o.KK)
-                                fname=strcat(o.knlpath,'KK_',o.knl.KK{i},'.grd');
-                                grdwrite([0 1], [0 1],o.KK{i},fname)
-                            end                    
-                        end
-                    else
-                        for i = 1:numel(o.KK)
-                            fname=strcat(o.knlpath,'KK_',o.knl.KK{i},'.grd');
-                            [~,~,o.KK{i}]=grdread(fname);
-                        end
+                    for i = 1:numel(o.KK)
+                        fname=strcat(o.knlpath,'KK_',o.knl.KK{i},'.grd');
+                        grdwrite([0 1], [0 1],o.KK{i},fname)
                     end
-                end    
+                else
+                    for i = 1:numel(o.KK)
+                        fname=strcat(o.knlpath,'KK_',o.knl.KK{i},'.grd');
+                        [~,~,o.KK{i}]=grdread(fname);
+                    end
+                end
             end
             
             if isobject(shz)
                 if isobject(flt)
                     o.knl.KL={'s11', 's12', 's13','s22', 's23', 's33';...
                         'd11', 'd12', 'd13','d22', 'd23', 'd33'};
-                    if isempty(varargin)
+                    
+                    if ~exist(strcat(o.knlpath,'KL_s11.grd'),'file')
                         [o.KL{:}]=flt.stressKernels(shz);
+                        for i = 1:numel(o.KL)
+                            fname=strcat(o.knlpath,'/KL_',o.knl.KL{i},'.grd');
+                            grdwrite([0 1], [0 1],o.KL{i},fname)
+                        end
                     else
-                        if ~exist(strcat(o.knlpath,'KL_s11.grd'),'file')
-                            if ~exist(strcat(o.knlpath,'KL.mat'),'file')
-                                [o.KL{:}]=flt.stressKernels(shz);
-                                for i = 1:numel(o.KL)
-                                    fname=strcat(o.knlpath,'/KL_',o.knl.KL{i},'.grd');
-                                    grdwrite([0 1], [0 1],o.KL{i},fname)
-                                end
-                            else
-                                load(strcat(o.knlpath,'KL.mat'));
-                                o.KL=sKL;
-                                clear sKL
-                                for i = 1:numel(o.KL)
-                                    fname=strcat(o.knlpath,'KL_',o.knl.KL{i},'.grd');
-                                    grdwrite([0 1], [0 1],o.KL{i},fname)
-                                end
-                            end
-                        else
-                            for i = 1:numel(o.KL)
-                                fname=strcat(o.knlpath,'KL_',o.knl.KL{i},'.grd');
-                                [~,~,o.KL{i}]=grdread(fname);
-                            end
+                        for i = 1:numel(o.KL)
+                            fname=strcat(o.knlpath,'KL_',o.knl.KL{i},'.grd');
+                            [~,~,o.KL{i}]=grdread(fname);
                         end
                     end
                     o.knl.LK={'s11', 'd11', 'n11'; 's12', 'd12', 'n12'; ...
                         's13', 'd13', 'n13'; 's22', 'd22', 'n22'; ...
                         's23', 'd23', 'n23'; 's33', 'd33', 'n33'};
-                    if isempty(varargin)
+                    
+                    if ~exist(strcat(o.knlpath,'LK_s11.grd'),'file')
                         [o.LK{:}]=shz.tractionKernels(flt);
-                    else
-                        if ~exist(strcat(o.knlpath,'LK_s11.grd'),'file')
-                            if ~exist(strcat(o.knlpath,'LK.mat'),'file')
-                                [o.LK{:}]=shz.tractionKernels(flt);
-                                for i = 1:numel(o.LK)
-                                    fname=strcat(o.knlpath,'LK_',o.knl.LK{i},'.grd');
-                                    grdwrite([0 1], [0 1],o.LK{i},fname)
-                                end
-                            else
-                                load(strcat(o.knlpath,'LK.mat'));
-                                o.LK=sLK;
-                                clear sLK
-                                for i = 1:numel(o.LK)
-                                    fname=strcat(o.knlpath,'LK_',o.knl.LK{i},'.grd');
-                                    grdwrite([0 1], [0 1],o.LK{i},fname)
-                                end
-                            end
-                        else
-                            for i = 1:numel(o.LK)
-                                fname=strcat(o.knlpath,'LK_',o.knl.LK{i},'.grd');
-                                [~,~,o.LK{i}]=grdread(fname);
-                            end
+                        for i = 1:numel(o.LK)
+                            fname=strcat(o.knlpath,'LK_',o.knl.LK{i},'.grd');
+                            grdwrite([0 1], [0 1],o.LK{i},fname)
                         end
-                    end    
+                    else
+                        for i = 1:numel(o.LK)
+                            fname=strcat(o.knlpath,'LK_',o.knl.LK{i},'.grd');
+                            [~,~,o.LK{i}]=grdread(fname);
+                        end
+                    end
+                    
                 end
                 o.knl.LL={'1111','1211','1311','2211','2311','3311';...
                     '1112','1212','1312','2212','2312','3312';...
@@ -213,32 +175,20 @@ classdef evolution < handle
                     '1122','1222','1322','2222','2322','3322';...
                     '1123','1223','1323','2223','2323','3323';...
                     '1133','1233','1333','2233','2333','3333'};
-                if isempty(varargin)
+                
+                if ~exist(strcat(o.knlpath,'LL_1111.grd'),'file')
                     [o.LL{:}]=shz.stressKernels(shz);
+                    for i = 1:numel(o.LL)
+                        fname=strcat(o.knlpath,'LL_',o.knl.LL{i},'.grd');
+                        grdwrite([0 1], [0 1],o.LL{i},fname)
+                    end
                 else
-                    if ~exist(strcat(o.knlpath,'LL_1111.grd'),'file')
-                        if ~exist(strcat(o.knlpath,'LL.mat'),'file')
-                            [o.LL{:}]=shz.stressKernels(shz);
-                            for i = 1:numel(o.LL)
-                                fname=strcat(o.knlpath,'LL_',o.knl.LL{i},'.grd');
-                                grdwrite([0 1], [0 1],o.LL{i},fname)
-                            end
-                        else
-                            load(strcat(o.knlpath,'LL.mat'));
-                            o.LL=sLL;
-                            clear sLL
-                            for i = 1:numel(o.LL)
-                                fname=strcat(o.knlpath,'LL_',o.knl.LL{i},'.grd');
-                                grdwrite([0 1], [0 1],o.LL{i},fname)
-                            end
-                        end
-                    else
-                        for i = 1:numel(o.LL)
-                            fname=strcat(o.knlpath,'LL_',o.knl.LL{i},'.grd');
-                            [~,~,o.LL{i}]=grdread(fname);
-                        end
+                    for i = 1:numel(o.LL)
+                        fname=strcat(o.knlpath,'LL_',o.knl.LL{i},'.grd');
+                        [~,~,o.LL{i}]=grdread(fname);
                     end
                 end
+                
             end
             
             
@@ -278,12 +228,12 @@ classdef evolution < handle
                                     [~,~,o.FK{i}]=grdread(fname);
                                 end
                             end
-                        end    
+                        end
                     end
                     
                     if isobject(shz)
                         o.knl.FL={'s11', 's12', 's13','s22', 's23', 's33';...
-                        'd11', 'd12', 'd13','d22', 'd23', 'd33'};
+                            'd11', 'd12', 'd13','d22', 'd23', 'd33'};
                         if isempty(varargin)
                             [o.FL{:}]=src.stressKernels(shz);
                         else
@@ -365,7 +315,7 @@ classdef evolution < handle
                     vd=(ds-y(2:obj.dgf:end,k-1))/(t(k)-t(k-1))*y2s;
                 end
                 v=sqrt(vs.^2+vd.^2);
-
+                
                 fname=sprintf('%s/receiver-%05d.vtp',wdir,1+(k-1)/jump);
                 exportvtk_rfaults( ...
                     scale*xp, ...
@@ -510,18 +460,18 @@ classdef evolution < handle
                     pos=(1:obj.flt.segments{k}.nPatch)+obj.flt.segments{k}.starti;
                     wMin=min(obj.flt.W(pos).*sind(obj.flt.dip(pos)));
                     pos=find(abs(obj.flt.xc(pos,3)+depth-wMin/4)<=wMin/2);
-                
+                    
                     % along-strike coordinates
                     x=(obj.flt.x(pos,:)-repmat(obj.flt.segments{k}.x,length(pos),1))*obj.flt.segments{k}.sv'+offset;
-                
+                    
                     % model index (cumulative strike- or dip slip)
                     index=component+(pos-1)*obj.flt.dgf;
-                
+                    
                     % time steps
                     Dt=diff(obj.t);
                     % velocity
                     v=diff(obj.y(index,:)')'./repmat(Dt,length(pos),1)*y2s;
-                
+                    
                     % seismic and aseismic index
                     index1=find(max(v,[],2)>=threshold);
                     if ~isempty(index1)
@@ -533,7 +483,7 @@ classdef evolution < handle
                     else
                         fprintf('no velocity above %8.2e\n',threshold);
                     end
-                
+                    
                     index2=find(max(v,[],2) <threshold);
                     if ~isempty(index2)
                         % one-year aseismic index
@@ -542,9 +492,9 @@ classdef evolution < handle
                             plot(x,obj.y(index,index2(pos2)),'b--')
                         end
                     else
-                    fprintf('no velocity below %8.2e\n',threshold);
+                        fprintf('no velocity below %8.2e\n',threshold);
                     end
-                
+                    
                     offset=obj.flt.segments{k}.L;
                 end
             end
@@ -660,7 +610,7 @@ classdef evolution < handle
                 
                 if ~isempty(index1)
                     % one-second (seismicPeriod) seismic index
-                    pos1=getPeriodicIndex(obj.t(index1),seismicPeriod);             
+                    pos1=getPeriodicIndex(obj.t(index1),seismicPeriod);
                     if ~isempty(pos1)
                         plot(obj.y(index,index1(pos1)),y,'r');
                     end
@@ -699,7 +649,7 @@ classdef evolution < handle
             
             ss=obj.evt{evtIndex}.src.slip.*cosd(obj.evt{evtIndex}.src.rake);
             ds=obj.evt{evtIndex}.src.slip.*sind(obj.evt{evtIndex}.src.rake);
-
+            
             if isobject(obj.flt)
                 Ks=obj.evt{evtIndex}.KK{1,1}*ss+obj.evt{evtIndex}.KK{2,1}*ds;
                 Kd=obj.evt{evtIndex}.KK{1,2}*ss+obj.evt{evtIndex}.KK{2,2}*ds;
@@ -796,40 +746,40 @@ classdef evolution < handle
             for k=1:length(evts)
                 evt{k}=struct('src',[],'KK',[],'KL',[]);
                 evt{k}.src=evts{pos(k)};
- 
+                
                 
                 % OLD CODE
-%                  fnameKK=['./kernels/evt_' num2str(k) '_KK.mat'];
-%                  fnameKL=['./kernels/evt_' num2str(k) '_KL.mat'];
-%                 if isobject(flt)
-%                     if ~exist(fnameKK,'file')
-%                         evt{k}.KK=cell(2,3);
-%                         [evt{k}.KK{1,1},evt{k}.KK{2,1}, ...
-%                             evt{k}.KK{1,2},evt{k}.KK{2,2}, ...
-%                             evt{k}.KK{1,3},evt{k}.KK{2,3}]=...
-%                             evt{pos(k)}.src.tractionKernels(flt);
-%                         sKK=evt{k}.KK;
-%                         save(fnameKK,'sKK');
-%                         clear sKK
-%                     else
-%                         load(fnameKK);
-%                         evt{k}.KK=sKK;
-%                         clear sKK
-%                     end
-%                 end
+                %                  fnameKK=['./kernels/evt_' num2str(k) '_KK.mat'];
+                %                  fnameKL=['./kernels/evt_' num2str(k) '_KL.mat'];
+                %                 if isobject(flt)
+                %                     if ~exist(fnameKK,'file')
+                %                         evt{k}.KK=cell(2,3);
+                %                         [evt{k}.KK{1,1},evt{k}.KK{2,1}, ...
+                %                             evt{k}.KK{1,2},evt{k}.KK{2,2}, ...
+                %                             evt{k}.KK{1,3},evt{k}.KK{2,3}]=...
+                %                             evt{pos(k)}.src.tractionKernels(flt);
+                %                         sKK=evt{k}.KK;
+                %                         save(fnameKK,'sKK');
+                %                         clear sKK
+                %                     else
+                %                         load(fnameKK);
+                %                         evt{k}.KK=sKK;
+                %                         clear sKK
+                %                     end
+                %                 end
                 
                 % NEW CODE
-                            %o.knl.KK={'ss', 'sd', 'sn'; 'ds', 'dd', 'dn'};
-         
-             
-
+                %o.knl.KK={'ss', 'sd', 'sn'; 'ds', 'dd', 'dn'};
+                
+                
+                
                 if isobject(flt)
                     evt{k}.KK=cell(2,3);
                     if ~exist(knlpath)
                         [evt{k}.KK{:}]=evt{pos(k)}.src.tractionKernels(flt);
                     end
                     
-                    if exist(knlpath)      
+                    if exist(knlpath)
                         fnameKK={[knlpath 'evt_' num2str(k) '_KK_ss.grd'],...
                             [knlpath 'evt_' num2str(k) '_KK_sd.grd'],...
                             [knlpath 'evt_' num2str(k) '_KK_sn.grd'];...
@@ -837,7 +787,7 @@ classdef evolution < handle
                             [knlpath 'evt_' num2str(k) '_KK_dd.grd'],...
                             [knlpath 'evt_' num2str(k) '_KK_dn.grd']};
                         fnameKKmat=[knlpath 'evt_' num2str(k) '_KK.mat'];
-                     
+                        
                         if ~exist(fnameKK{1},'file')
                             if ~exist(fnameKKmat,'file')
                                 [evt{k}.KK{:}]=evt{pos(k)}.src.tractionKernels(flt);
@@ -859,7 +809,7 @@ classdef evolution < handle
                         end
                     end
                 end
-                                    
+                
                 %          new code
                 if isobject(shz)
                     evt{k}.KL=cell(2,6);
@@ -867,7 +817,7 @@ classdef evolution < handle
                     if ~exist(knlpath)
                         [evt{k}.KL{:}]=evt{pos(k)}.src.stressKernels(shz);
                     end
-                   
+                    
                     if exist(knlpath)
                         fnameKL={[knlpath 'evt_' num2str(k) '_KL_s11.grd'],...
                             [knlpath 'evt_' num2str(k) '_KL_s12.grd'],...
@@ -905,29 +855,29 @@ classdef evolution < handle
                     end
                 end
                 %
-               % fnameKL=['./kernels/evt_' num2str(k) '_KL.mat'];
+                % fnameKL=['./kernels/evt_' num2str(k) '_KL.mat'];
                 
                 %                Old code
-%                 if isobject(shz)
-%                     
-%                     if ~exist(fnameKL,'file')
-%                         evt{k}.KL=cell(2,6);
-%                         [evt{k}.KL{1,1},evt{k}.KL{2,1}, ...
-%                             evt{k}.KL{1,2},evt{k}.KL{2,2}, ...
-%                             evt{k}.KL{1,3},evt{k}.KL{2,3}, ...
-%                             evt{k}.KL{1,4},evt{k}.KL{2,4}, ...
-%                             evt{k}.KL{1,5},evt{k}.KL{2,5}, ...
-%                             evt{k}.KL{1,6},evt{k}.KL{2,6}]=...
-%                             evt{pos(k)}.src.stressKernels(shz);
-%                         sKL=evt{k}.KL;
-%                         save(fnameKL,'sKL');
-%                         clear sKL
-%                     else
-%                         load(fnameKL);
-%                         evt{k}.KL=sKL;
-%                         clear sKL
-%                     end
-%                 end
+                %                 if isobject(shz)
+                %
+                %                     if ~exist(fnameKL,'file')
+                %                         evt{k}.KL=cell(2,6);
+                %                         [evt{k}.KL{1,1},evt{k}.KL{2,1}, ...
+                %                             evt{k}.KL{1,2},evt{k}.KL{2,2}, ...
+                %                             evt{k}.KL{1,3},evt{k}.KL{2,3}, ...
+                %                             evt{k}.KL{1,4},evt{k}.KL{2,4}, ...
+                %                             evt{k}.KL{1,5},evt{k}.KL{2,5}, ...
+                %                             evt{k}.KL{1,6},evt{k}.KL{2,6}]=...
+                %                             evt{pos(k)}.src.stressKernels(shz);
+                %                         sKL=evt{k}.KL;
+                %                         save(fnameKL,'sKL');
+                %                         clear sKL
+                %                     else
+                %                         load(fnameKL);
+                %                         evt{k}.KL=sKL;
+                %                         clear sKL
+                %                     end
+                %                 end
             end
         end
     end % end static methods
